@@ -93,7 +93,7 @@ districts_data = {
 
 # Asosiy sarlavha
 st.markdown('<h1 class="main-header">🛰️ Xorazm Viloyati Vegetatsiya Monitoring Tizimi</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Landsat 8/9 Sun'iy Yo'ldosh Ma'lumotlari Asosida NDVI/NDWI/EVI Indekslarini Tahlil</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Landsat 8/9 Sun\'iy Yo'ldosh Ma'lumotlari Asosida NDVI/NDWI/EVI Indekslarini Tahlil</p>', unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
