@@ -4,17 +4,27 @@ from streamlit_folium import st_folium
 import ee
 from google.oauth2 import service_account
 
-# 1. Sahifa ko'rinishi sozlamalari
+# 1. Sahifa ko'rinishi sozlamalari (Keng ekran rejimi)
 st.set_page_config(layout="wide")
 st.title("Google Earth Engine Web Map")
 
-# 2. Earth Engine autentifikatsiyasi (Streamlit Secrets orqali)
+# 2. Earth Engine autentifikatsiyasi (Hamma xatoliklar tuzatilgan yakuniy qism)
 try:
-    # Streamlit Secrets-dagi TOML ma'lumotlarini Python lug'atiga o'giramiz
+    # Streamlit Secrets'dan TOML formatidagi ma'lumotlarni olamiz
     creds_dict = dict(st.secrets["gcp_service_account"])
-    credentials = service_account.Credentials.from_service_account_info(creds_dict)
     
-    # Earth Engine-ni ushbu maxfiy kalit bilan ishga tushiramiz
+    # PEM va MalformedFraming xatolarini oldini olish uchun \n belgilarini to'g'rilaymiz
+    if "private_key" in creds_dict:
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+    
+    # invalid_scope xatosini yo'qotish uchun aniq ruxsatnomalar (scopes) yuklaymiz
+    scopes = [
+        'https://www.googleapis.com/auth/earthengine', 
+        'https://www.googleapis.com/auth/cloud-platform'
+    ]
+    credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    
+    # Earth Engine-ni yangi ruxsatnoma bilan xavfsiz ishga tushiramiz
     if not ee.data.is_initialized():
         ee.Initialize(credentials=credentials)
 except Exception as e:
@@ -23,7 +33,7 @@ except Exception as e:
 
 st.subheader("Interaktiv Xarita")
 
-# 3. Standart Folium xaritasini yaratish (O'zbekiston/Xorazm atrofida)
+# 3. Standart Folium xaritasini yaratish (O'zbekiston / Xorazm atrofida)
 m = folium.Map(location=[41.5, 61.0], zoom_start=7, control_scale=True)
 
 # 4. Earth Engine qatlamlarini Folium xaritasiga qo'shish funksiyasi
@@ -49,7 +59,7 @@ try:
     # Qatlamni xaritaga joylaymiz
     add_ee_layer(dem, vis_params, 'SRTM DEM Elevation')
     
-    # Xaritada qatlamlarni yoqib-o'chirish tugmachasini hosil qilamiz
+    # Xaritada qatlamlarni yoqib-o'chirish (Layer Control) tugmachasini hosil qilamiz
     folium.LayerControl().add_to(m)
 
 except Exception as e:
