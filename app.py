@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import json
 import base64
-from io import BytesIO  # StringIO o'rniga BytesIO ishlatiladi (Excel uchun)
+from io import BytesIO  # StringIO o'rniga BytesIO ishlatiladi (Excel xatoligini oldini olish uchun)
 
 # Sahifa sozlamalari
 st.set_page_config(
@@ -60,14 +60,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Google Earth Engine ni ishga tushirish
+# Google Earth Engine ni xavfsiz ishga tushirish
 try:
     ee.Initialize()
 except Exception as e:
     try:
-        ee.Initialize(project='ee-your-project')
+        ee.Initialize(project='ee-your-project')  # O'zingizning GEE loyiha ID-ngizni kiriting
     except:
-        st.error("GEE autentifikatsiya xatosi! Iltimos, service account sozlamalarini tekshiring.")
+        st.error("GEE autentifikatsiya xatosi! Iltimos, service account yoki project sozlamalarini tekshiring.")
 
 # Xorazm viloyati chegaralari
 xorazm_region = ee.Geometry.Rectangle([59.5, 41.0, 61.5, 42.0])
@@ -139,7 +139,6 @@ if analyze_btn:
         if collection.size().getInfo() == 0:
             st.warning("Tanlangan vaqt oralig'ida ma'lumot topilmadi. Iltimos, boshqa sanalarni tanlang.")
         else:
-            # O'rtacha tasvirni olish
             image = collection.median()
 
             # Indekslarni hisoblash
@@ -171,7 +170,7 @@ if analyze_btn:
                 vis_params = {'min': -0.2, 'max': 0.8, 'palette': ['#d73027', '#fc8d59', '#fee08b', '#d9ef8b', '#91cf60', '#1a9850']}
                 index_name = "SAVI"
 
-            # Statistik ma'lumotlarni olish
+            # Statistik ma'lumotlarni hisoblash
             stats = index.reduceRegion(
                 reducer=ee.Reducer.mean().combine(
                     reducer2=ee.Reducer.stdDev(),
@@ -185,7 +184,7 @@ if analyze_btn:
                 maxPixels=1e9
             ).getInfo()
 
-            # Tumanlar bo'yicha statistika
+            # Tumanlar bo'yicha hisob-kitoblar
             district_stats = []
             for district, info in districts_data.items():
                 if not selected_districts or district in selected_districts:
@@ -204,7 +203,7 @@ if analyze_btn:
 
             df_stats = pd.DataFrame(district_stats)
 
-            # 1-qator: Xarita va statistika
+            # Vizualizatsiya qismi
             col1, col2 = st.columns([2, 1])
 
             with col1:
@@ -240,7 +239,7 @@ if analyze_btn:
                 st.subheader("📋 Tumanlar Bo'yicha")
                 st.dataframe(df_stats, use_container_width=True, hide_index=True)
 
-            # 2-qator: Diagrammalar
+            # Diagrammalar
             st.markdown("---")
             st.subheader("📈 Vizual Tahlil")
             col3, col4 = st.columns(2)
@@ -271,7 +270,7 @@ if analyze_btn:
                 )
                 st.plotly_chart(fig_scatter, use_container_width=True)
 
-            # 3-qator: Vaqt seriyasi
+            # Oylik vaqt dinamikasi
             st.markdown("---")
             st.subheader("⏱️ Vaqt Seriyasi Tahlili")
 
@@ -328,7 +327,7 @@ if analyze_btn:
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
 
-            # Ma'lumotlarni yuklab olish
+            # Ma'lumotlarni yuklab olish bo'limi
             st.markdown("---")
             st.subheader("💾 Ma'lumotlarni Yuklab Olish")
             col5, col6, col7 = st.columns(3)
@@ -354,7 +353,7 @@ if analyze_btn:
                 )
 
             with col7:
-                # TO'G'RILANDI: Excel fayli endi xatosiz yuklanadi
+                # TO'G'RILANDI: Excel fayli endi xatosiz yuklanadi (BytesIO va pandas orqali)
                 excel_buffer = BytesIO()
                 with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                     df_stats.to_excel(writer, index=False, sheet_name='Statistika')
@@ -368,7 +367,7 @@ if analyze_btn:
                     use_container_width=True
                 )
 
-            # Ma'lumot matnlari
+            # Izohlar
             st.markdown("---")
             st.subheader("ℹ️ Indeks Haqida Ma'lumot")
             if "NDVI" in index_type:
@@ -389,7 +388,6 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # Boshlang'ich namuna jadval
     sample_data = [{"Tuman": d, "Kenglik": info["center"][0], "Uzunlik": info["center"][1], "Maydoni (km²)": info["area"]} for d, info in districts_data.items()]
     df_sample = pd.DataFrame(sample_data)
     
