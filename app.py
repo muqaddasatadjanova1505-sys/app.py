@@ -6,7 +6,7 @@ from google.oauth2 import service_account
 
 # 1. Sahifa ko'rinishi sozlamalari
 st.set_page_config(layout="wide")
-st.title("Xorazm Viloyati NDVI Klassifikatsiyasi (Sentinel-2)")
+st.title("Xorazm Viloyati NDVI Klassifikatsiyasi (4 Klass)")
 
 # 2. Earth Engine autentifikatsiyasi
 try:
@@ -26,7 +26,7 @@ except Exception as e:
     st.error(f"Google Earth Engine bilan bogʻlanishda xatolik yuz berdi: {e}")
     st.stop()
 
-st.subheader("Klassifikatsiya qilingan hududlar")
+st.subheader("Gidrografiyasiz, 4 ta klassga ajratilgan hududlar xaritasi")
 
 # 3. Folium xaritasini yaratish
 m = folium.Map(location=[41.50, 60.60], zoom_start=9, control_scale=True)
@@ -55,42 +55,36 @@ try:
     s2_image = s2_collection.median()
     raw_ndvi = s2_image.normalizedDifference(['B8', 'B4']).clip(xorazm_boundary)
     
-    # ⚠️ 6. NDVI KLASSIFIKATSIYASI (Hududlarni sinflarga ajratish)
-    # Boshlang'ich qiymat sifatida barcha piksellarni 1 (Suv yoki bo'sh yer) deb olamiz
+    # 6. 4 TA KLASSIFIKATSIYA ZONASI (Gidrografiyasiz)
+    # Boshlang'ich qiymat: barcha ochiq yerlar, qum va suvlar 1-klassga o'tadi (NDVI <= 0.2)
     classified_ndvi = ee.Image(1)
     
-    # Shartlar bo'yicha zonalarga ajratamiz:
-    # NDVI 0.1 dan 0.2 gacha bo'lsa -> Class 2 (Qumloq va sho'rxok yerlar)
-    classified_ndvi = classified_ndvi.where(raw_ndvi.gt(0.1).And(raw_ndvi.lte(0.2)), 2)
+    # NDVI 0.2 dan 0.35 gacha -> Class 2 (Siyrak o'simlik va yaylovlar)
+    classified_ndvi = classified_ndvi.where(raw_ndvi.gt(0.2).And(raw_ndvi.lte(0.35)), 2)
     
-    # NDVI 0.2 dan 0.35 gacha bo'lsa -> Class 3 (Siyrak o'simlik va yaylovlar)
-    classified_ndvi = classified_ndvi.where(raw_ndvi.gt(0.35).And(raw_ndvi.lte(0.5)), 3)
+    # NDVI 0.35 dan 0.55 gacha -> Class 3 (O'rtacha rivojlangan ekinlar)
+    classified_ndvi = classified_ndvi.where(raw_ndvi.gt(0.35).And(raw_ndvi.lte(0.55)), 3)
     
-    # NDVI 0.35 dan 0.5 gacha bo'lsa -> Class 4 (O'rtacha rivojlangan ekinlar)
-    classified_ndvi = classified_ndvi.where(raw_ndvi.gt(0.5).And(raw_ndvi.lte(0.65)), 4)
+    # NDVI 0.55 dan yuqori bo'lsa -> Class 4 (Zich va qalin ekinzorlar, bog'lar)
+    classified_ndvi = classified_ndvi.where(raw_ndvi.gt(0.55), 4)
     
-    # NDVI 0.5 dan yuqori bo'lsa -> Class 5 (Sersuv, zich va qalin yashil ekinzorlar)
-    classified_ndvi = classified_ndvi.where(raw_ndvi.gt(0.65), 5)
-    
-    # Klassifikatsiyalangan tasvirni Xorazm chegarasiga qirqamiz
+    # Tasvirni chegaraga qirqish
     classified_ndvi = classified_ndvi.clip(xorazm_boundary)
 
-    # 7. Vizualizatsiya parametrlari (Har bir klass uchun alohida keskin rang)
-    # 1: Moviy (Suv), 2: Och jigarrang (Ochiq tuproq/Qum), 3: Sariq (Siyrak), 4: Och yashil (O'rtacha), 5: To'q yashil (Zich)
+    # 7. Vizualizatsiya parametrlari (4 ta aniq rang)
     class_vis = {
         'min': 1,
-        'max': 5,
+        'max': 4,
         'palette': [
-            '#0000FF',  # 1-klass: Suv (Moviy)
-            '#DEB887',  # 2-klass: Bo'sh yer / Qum (Jigarrang)
-            '#FFFF00',  # 3-klass: Siyrak o'simlik (Sariq)
-            '#7CFC00',  # 4-klass: O'rtacha ekin (Och yashil)
-            '#006400'   # 5-klass: Qalin ekinzor (To'q yashil)
+            '#D3B39C',  # 1-klass: Ochiq tuproq, qumliklar va bino/inshootlar (Och jigarrang)
+            '#FFFF00',  # 2-klass: Siyrak o'simlik qoplami (Sariq)
+            '#7CFC00',  # 3-klass: O'rtacha zichlikdagi ekinlar (Och yashil)
+            '#006400'   # 4-klass: Yuqori zichlikdagi ekinlar va bog'lar (To'q yashil)
         ]
     }
     
     # Qatlamni xaritaga qo'shish
-    add_ee_layer(classified_ndvi, class_vis, 'Xorazm NDVI Klassifikatsiyasi')
+    add_ee_layer(classified_ndvi, class_vis, 'Xorazm 4 Klassli NDVI')
     folium.LayerControl().add_to(m)
 
 except Exception as e:
@@ -99,12 +93,11 @@ except Exception as e:
 # 8. Xaritani ko'rsatish
 st_folium(m, width="100%", height=650)
 
-# 9. Streamlit interfeysida tushuntirish (Legend) oynasi yaratish
+# 9. Shartli Belgilar (Legend)
 st.markdown("""
-### 📊 Xarita Shartli Belgilari (Legend):
-* 🟦 **Moviy (1):** Suv havzalari (Daryo, ko'llar va kanallar).
-* 🟫 **Och jigarrang (2):** Ekin ekilmagan bo'sh yerlar, sho'rxoklar yoki qumliklar.
-* 🟨 **Sariq (3):** Siyrak o'simlik qoplami, pishib yetilgan g'alla yoki o'tloqlar.
-* 🟩 **Och yashil (4):** O'rtacha rivojlanish bosqichidagi g'o'za va boshqa qishloq xo'jaligi ekinlari.
-* FFE 🟩 **To'q yashil (5):** Juda zich va intensiv rivojlangan yashil ekinzorlar, bog'lar va to'qaylar.
+### 📊 Xarita Shartli Belgilari (4 Klass):
+* 🟫 **Och jigarrang (1):** Ekin ekilmagan bo'sh yerlar, sho'rxoklar, qumliklar va shahar/aholi punktlari.
+* 🟨 **Sariq (2):** Siyrak o'simliklar, tabiiy o'tloqlar yoki vegetatsiyasi yakunlangan g'alla maydonlari.
+* 🟩 **Och yashil (3):** O'rtacha rivojlanish darajasidagi qishloq xo'jaligi ekinlari (g'o'za va b.).
+* 🌲 **To'q yashil (4):** Juda zich rivojlangan yashil ekinzorlar, bog'lar, to'qaylar va daraxtzorlar.
 """)
