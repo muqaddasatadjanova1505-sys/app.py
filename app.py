@@ -1,4 +1,4 @@
-[22.05.2026 15:31] Sharqiya: import streamlit as st
+ import streamlit as st
 import ee
 import folium
 from streamlit_folium import st_folium
@@ -85,7 +85,7 @@ def get_ndvi_color(ndvi):
     elif ndvi < 0.6: return "#FFD700"
     elif ndvi < 0.75: return "#7CFC00"
     else: return "#006400"
-[22.05.2026 15:31] Sharqiya: def get_gee_ndvi_url(start_date, end_date, cloud_threshold=20):
+ def get_gee_ndvi_url(start_date, end_date, cloud_threshold=20):
     try:
         xorazm = ee.Geometry.Rectangle([60.0, 41.0, 61.5, 42.0])
         s2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')\
@@ -150,7 +150,7 @@ if viz == "GEE Real NDVI" and ee_ok:
         if url:
             folium.TileLayer(tiles=url, attr='GEE|Sentinel-2', name='🌿 Real NDVI', overlay=True, opacity=0.9).add_to(m)
             st.success("✅ Haqiqiy NDVI yuklandi!")
-[22.05.2026 15:31] Sharqiya: elif viz == "Choropleth" and selected:
+ elif viz == "Choropleth" and selected:
     geojson_data = {"type": "FeatureCollection", "features": []}
     for name, info in districts.items():
         center = info["center"]
