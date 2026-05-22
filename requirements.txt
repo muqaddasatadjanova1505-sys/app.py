@@ -1,7 +1,5 @@
 streamlit
-folium
-streamlit-folium
 earthengine-api
-plotly
-pandas
-numpy
+geemap
+folium
+google-auth
