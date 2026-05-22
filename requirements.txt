@@ -1,7 +1,8 @@
-streamlit>=1.30.0
+streamlit
+setuptools
 earthengine-api
-geemap==0.34.3
-folium>=0.15.0
-python-box==7.1.1
+geemap
+folium
+python-box
 xyzservices
 google-auth
